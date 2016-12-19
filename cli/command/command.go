@@ -219,6 +219,28 @@ func DownCommand() cli.Command {
 	}
 }
 
+// UpCommand defines the kompose up subcommand.
+func ApplyCommand() cli.Command {
+	return cli.Command{
+		Name:  "apply",
+		Usage: "stuff",
+		Action: func(c *cli.Context) {
+			app.Apply(c)
+		},
+		BashComplete: func(c *cli.Context) {
+			//flags := []string{"emptyvols"}
+			//generateBashCompletion(flags)
+		},
+		//Flags: []cli.Flag{
+		//	cli.BoolFlag{
+		//		Name:  "emptyvols",
+		//		Usage: "Use Empty Volumes. Don't generate PVCs",
+		//	},
+		//},
+	}
+}
+
+
 // CommonFlags defines the flags that are in common for all subcommands.
 func CommonFlags() []cli.Flag {
 	return []cli.Flag{

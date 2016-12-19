@@ -40,6 +40,9 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	//"k8s.io/kubernetes/pkg/controller/daemon"
+	"k8s.io/client-go/1.4/pkg/api/v1"
+	"k8s.io/client-go/1.4/tools/clientcmd"
+
 )
 
 type Kubernetes struct {
@@ -525,5 +528,45 @@ func (k *Kubernetes) Undeploy(komposeObject kobject.KomposeObject, opt kobject.C
 		}
 
 	}
+	return nil
+}
+
+func (k *Kubernetes) Apply(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error {
+	//Convert komposeObject
+	objects := k.Transform(komposeObject, opt)
+
+	client, namespace, err := k.GetKubernetesClient()
+	if err != nil {
+		return err
+	}
+
+	clientcmd.BuildConfigFromFlags("", "asd")
+
+
+	for _, v := range objects {
+		switch t := v.(type) {
+		case *extensions.Deployment:
+			_, err := client.Deployments(namespace).Create(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created Deployment: %s", t.Name)
+		case *api.Service:
+			_, err := client.Services(namespace).Create(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created Service: %s", t.Name)
+		case *api.PersistentVolumeClaim:
+			_, err := client.PersistentVolumeClaims(namespace).Create(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created PersistentVolumeClaim: %s", t.Name)
+		}
+	}
+
+	fmt.Println("\nYour application has been deployed to Kubernetes. You can run 'kubectl get deployment,svc,pods" + pvcStr + "' for details.")
+
 	return nil
 }

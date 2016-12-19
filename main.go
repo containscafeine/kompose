@@ -43,6 +43,7 @@ func main() {
 
 		command.UpCommand(),
 		command.DownCommand(),
+		command.ApplyCommand(),
 		// TODO: enable these commands and update docs once we fix them
 		//command.PsCommand(),
 		//command.ScaleCommand(),

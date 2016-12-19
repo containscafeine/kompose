@@ -231,6 +231,39 @@ func Down(c *cli.Context) {
 
 }
 
+// Apply configuration to resources
+func Apply (c *cli.Context) {
+	opt := kobject.ConvertOptions{
+		InputFile: c.GlobalString("file"),
+		Replicas:  1,
+		Provider:  strings.ToLower(c.GlobalString("provider")),
+	}
+	validateFlags(c, &opt)
+	validateControllers(&opt)
+
+	// loader parses input from file into komposeObject.
+	l, err := loader.GetLoader(inputFormat)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	komposeObject := kobject.KomposeObject{
+		ServiceConfigs: make(map[string]kobject.ServiceConfig),
+	}
+	komposeObject = l.LoadFile(opt.InputFile)
+
+	// Get the transformer
+	t := getTransformer(opt)
+
+	//Remove deployed application
+	errApply := t.Apply(komposeObject, opt)
+	if errApply != nil {
+		logrus.Fatalf("Error while applying to application: %s", errApply)
+	}
+
+
+}
+
 // Convenience method to return the appropriate Transformer based on
 // what provider we are using.
 func getTransformer(opt kobject.ConvertOptions) transformer.Transformer {
@@ -245,6 +278,7 @@ func getTransformer(opt kobject.ConvertOptions) transformer.Transformer {
 	}
 	return t
 }
+
 
 func askForConfirmation() bool {
 	var response string

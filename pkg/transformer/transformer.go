@@ -28,4 +28,6 @@ type Transformer interface {
 	Deploy(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error
 	// Undeploy deletes/undeploys KomposeObject from provider
 	Undeploy(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error
+	// Apply applies configuration to resources
+	Apply(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error
 }
