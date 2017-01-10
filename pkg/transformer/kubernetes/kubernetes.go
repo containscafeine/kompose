@@ -596,6 +596,62 @@ func (k *Kubernetes) Deploy(komposeObject kobject.KomposeObject, opt kobject.Con
 	return nil
 }
 
+// Apply updates deployment and svc to k8s endpoint
+func (k *Kubernetes) Apply(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error {
+	//Convert komposeObject
+	objects := k.Transform(komposeObject, opt)
+
+	pvcStr := " "
+	if !opt.EmptyVols {
+		pvcStr = " and PersistentVolumeClaims "
+	}
+	fmt.Println("We are going to create Kubernetes Deployments, Services" + pvcStr + "for your Dockerized application. \n" +
+		"If you need different kind of resources, use the 'kompose convert' and 'kubectl create -f' commands instead. \n")
+
+	client, namespace, err := k.GetKubernetesClient()
+	if err != nil {
+		return err
+	}
+
+	for _, v := range objects {
+		switch t := v.(type) {
+		case *extensions.Deployment:
+			_, err := client.Deployments(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created Deployment: %s", t.Name)
+		case *api.Service:
+			_, err := client.Services(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created Service: %s", t.Name)
+		case *api.PersistentVolumeClaim:
+			_, err := client.PersistentVolumeClaims(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created PersistentVolumeClaim: %s", t.Name)
+		case *extensions.Ingress:
+			_, err := client.Ingress(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created Ingress: %s", t.Name)
+		}
+	}
+
+	if !opt.EmptyVols {
+		pvcStr = ",pvc"
+	} else {
+		pvcStr = ""
+	}
+	fmt.Println("\nYour application has been deployed to Kubernetes. You can run 'kubectl get deployment,svc,pods" + pvcStr + "' for details.")
+
+	return nil
+}
+
 // Undeploy deletes deployed objects from Kubernetes cluster
 func (k *Kubernetes) Undeploy(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error {
 	//Convert komposeObject

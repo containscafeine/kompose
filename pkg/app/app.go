@@ -230,6 +230,32 @@ func Up(opt kobject.ConvertOptions) {
 	}
 }
 
+// Apply applies changes to deployment, svc.
+func Apply(opt kobject.ConvertOptions) {
+
+	validateControllers(&opt)
+
+	// loader parses input from file into komposeObject.
+	l, err := loader.GetLoader(inputFormat)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	komposeObject := kobject.KomposeObject{
+		ServiceConfigs: make(map[string]kobject.ServiceConfig),
+	}
+	komposeObject = l.LoadFile(opt.InputFiles)
+
+	// Get the transformer
+	t := getTransformer(opt)
+
+	//Submit objects to provider
+	errApply := t.Apply(komposeObject, opt)
+	if errApply != nil {
+		logrus.Fatalf("Error while updating application: %s", errApply)
+	}
+}
+
 // Down deletes all deployment, svc.
 func Down(opt kobject.ConvertOptions) {
 

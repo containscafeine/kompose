@@ -472,6 +472,78 @@ func (o *OpenShift) Deploy(komposeObject kobject.KomposeObject, opt kobject.Conv
 	return nil
 }
 
+// Apply applied and deploys kobject to OpenShift
+func (o *OpenShift) Apply(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error {
+	//Convert komposeObject
+	objects := o.Transform(komposeObject, opt)
+	pvcStr := " "
+	if !opt.EmptyVols {
+		pvcStr = " and PersistentVolumeClaims "
+	}
+	fmt.Println("We are going to create OpenShift DeploymentConfigs, Services" + pvcStr + "for your Dockerized application. \n" +
+		"If you need different kind of resources, use the 'kompose convert' and 'oc create -f' commands instead. \n")
+
+	oclient, err := o.getOpenShiftClient()
+	if err != nil {
+		return err
+	}
+	kclient, namespace, err := o.GetKubernetesClient()
+	if err != nil {
+		return err
+	}
+
+	for _, v := range objects {
+		switch t := v.(type) {
+		case *imageapi.ImageStream:
+			_, err := oclient.ImageStreams(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created ImageStream: %s", t.Name)
+		case *buildapi.BuildConfig:
+			_, err := oclient.BuildConfigs(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created BuildConfig: %s", t.Name)
+		case *deployapi.DeploymentConfig:
+			_, err := oclient.DeploymentConfigs(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created DeploymentConfig: %s", t.Name)
+		case *api.Service:
+			_, err := kclient.Services(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created Service: %s", t.Name)
+		case *api.PersistentVolumeClaim:
+			_, err := kclient.PersistentVolumeClaims(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created PersistentVolumeClaim: %s", t.Name)
+		case *routeapi.Route:
+			_, err := oclient.Routes(namespace).Update(t)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Successfully created Route: %s", t.Name)
+		}
+	}
+
+	if !opt.EmptyVols {
+		pvcStr = ",pvc"
+	} else {
+		pvcStr = ""
+	}
+	fmt.Println("\nYour application has been deployed to OpenShift. You can run 'oc get dc,svc,is" + pvcStr + "' for details.")
+
+	return nil
+}
+
+
 //Undeploy removes deployed artifacts from OpenShift cluster
 func (o *OpenShift) Undeploy(komposeObject kobject.KomposeObject, opt kobject.ConvertOptions) error {
 	//Convert komposeObject
